@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 type DownloadLink struct {
 	Url string
-	Wallpaper string
 }
 
 type Images struct {
@@ -39,14 +39,21 @@ func getData(url string) *[]byte {
 
 // 保存图片
 func saveImage(url string, fileName string, path string, ch chan int) {
+	if _, err := os.Stat(path + fileName); err == nil {
+		fmt.Printf("%s 已下载，正在跳过...\n", fileName)
+		ch <- 1
+		return
+	}
+	fmt.Printf("正在下载-->%s\n", fileName)
 	resp := getData(url)
-	f, err := os.Create(path + fileName + ".jpg")
+	f, err := os.Create(path + fileName)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	defer f.Close()
 	f.Write(*resp)
+	fmt.Println("下载成功！")
 	ch <- 1
 }
 
@@ -62,26 +69,22 @@ func main() {
 	// 路径分隔符
 	pathSeparator := filepath.FromSlash("/")
 	// 获取当前运行目录的Wallpaper文件夹
-	path := filepath.Dir(os.Args[0]) + pathSeparator + "Wallpaper" + pathSeparator
-	// 1920x1080图片保存路径（无水印）
-	path_1920x1080 := path + "1920x1080" + pathSeparator
-	// 1920x1200图片保存路径（有水印）
-	path_1920x1200 := path + "1920x1200" + pathSeparator
-	// 判断当前目录是否存在Wallpaper文件夹，没有则创建
+	path := filepath.Dir(os.Args[0]) + pathSeparator + "wallpaper" + pathSeparator
 	_, err := os.Stat(path)
 	if err != nil {
-		os.MkdirAll(path_1920x1080, 0775)
-		os.MkdirAll(path_1920x1200, 0775)
+		os.Mkdir(path, 0775)
 	}
+	re := regexp.MustCompile("id=(.+?)_1920")
 	// 遍历壁纸链接
 	for _, v := range loli.MediaContents {
 		// 下载1920x1080
 		url := "https://cn.bing.com" + v.ImageContent.Image.Url
+		imageId := re.FindStringSubmatch(url)
 		fileName := v.ImageContent.Title
-		go saveImage(url, fileName, path_1920x1080, ch)
-		// 下载1920x1200
-		url = "https://cn.bing.com" + v.ImageContent.Image.Wallpaper
-		go saveImage(url, fileName, path_1920x1200, ch)
+		go saveImage(url, fileName + "_1920x1080.jpg", path, ch)
+		// 下载4K
+		url = "https://www.bingimg.cn/down/uhd/"+ imageId[1] +"_UHD.jpg"
+		go saveImage(url, fileName + "_UHD.jpg", path, ch)
 	}
 	for i := 0; i < len(loli.MediaContents) * 2; i++ {
 		<-ch
