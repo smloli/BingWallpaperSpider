@@ -1,5 +1,11 @@
-# BingWallpaperDownload
-必应每日壁纸下载
+### 必应每日壁纸下载
+
+>###### 分辨率
+> * 1920x1080（无水印）
+> * 4k（无水印）
+> 
+> ###### PS
+> * 4k下载速度慢，还有可能下载不完整，这时候只能把目录里不完整的图片删掉，重新打开软件下载
 
 ![](https://dd-static.jd.com/ddimg/jfs/t1/213606/13/5101/71185/6198a06aE0092f176/c2f66cc43dd301c2.png)
 ![](https://dd-static.jd.com/ddimg/jfs/t1/200639/19/16663/186112/6198a06aE9e397092/d5cfbaefa6d5cb61.png)
