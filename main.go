@@ -8,7 +8,20 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
+	"strconv"
+	"time"
 )
+
+type ImageInfo struct {
+	Id string
+	Title string
+}
+
+// 历史图片下载
+type HistoryImage struct {
+	Image []ImageInfo
+}
 
 type DownloadLink struct {
 	Url string
@@ -23,6 +36,7 @@ type ImageContentInfo struct {
 	ImageContent Images
 }
 
+// 每日图片下载
 type Loli struct {
 	MediaContents []ImageContentInfo
 }
@@ -37,35 +51,76 @@ func getData(url string) *[]byte {
 	return &body
 }
 
+// 下载计数
+var count int
+
 // 保存图片
-func saveImage(url string, fileName string, path string, ch chan int) {
-	if _, err := os.Stat(path + fileName); err == nil {
-		fmt.Printf("%s 已下载，正在跳过...\n", fileName)
-		ch <- 1
-		return
+func saveImage(Id string, imageType *[]string, title string, path string, blacklist *[]string) {
+	// 过滤文件名特殊符号
+	fileName := title
+	for _, k := range *blacklist {
+		if index := strings.Index(title, k); index != -1 {
+			fileName = strings.Replace(fileName, k, "", -1)
+		}
 	}
-	fmt.Printf("正在下载-->%s\n", fileName)
-	resp := getData(url)
-	f, err := os.Create(path + fileName)
-	if err != nil {
-		fmt.Println(err)
-		return
+	for _, v := range *imageType {
+		if _, err := os.Stat(path + fileName + "_" + v + ".jpg"); err == nil {
+			fmt.Printf("%s 已下载，正在跳过...\n", fileName)
+			continue
+		}
+		count++
+		fmt.Printf("%d %s ", count, fileName)
+		url := "https://cn.bing.com/th?id=" + Id + "_" + v + ".jpg&rf=LaDigue_" + v + ".jpg"
+		resp := getData(url)
+		f, err := os.Create(path + fileName + "_" + v + ".jpg")
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		defer f.Close()
+		f.Write(*resp)
+		fmt.Println("下载成功！")
 	}
-	defer f.Close()
-	f.Write(*resp)
-	fmt.Println("下载成功！")
-	ch <- 1
+}
+
+// 历史壁纸下载
+func (historyImage *HistoryImage) HistoryDownload(imageType *[]string, path string, blacklist *[]string) {
+	re := regexp.MustCompile(`alt="(.+?)_1920x1080\.jpg"\r\n\s+title="(.+?)\s\(&copy`)
+	// 取出最后一页
+	respPageMax := getData("http://bing.richex.cn")
+	rePageMax := regexp.MustCompile(`\.\.\.</span></li><li>.+?>(\d+)</a></li> <li>`)
+	resPageMax := rePageMax.FindSubmatch(*respPageMax)
+	pageMax, _ := strconv.Atoi(string(resPageMax[1]))
+	// 获取图片Id和标题
+	for i := 1; i <= pageMax; i++ {
+		fmt.Printf("正在爬取第%d页\n", i)
+		resp := getData("http://bing.richex.cn/?page=" + fmt.Sprintf("%d", i))
+		res := re.FindAllSubmatch(*resp, -1)
+		for _, v := range res {
+			if historyImage.Image[0].Id == "" {
+				historyImage.Image[0].Id = string(v[1])
+				historyImage.Image[0].Title = string(v[2])
+				continue
+			}
+			historyImage.Image = append(historyImage.Image, ImageInfo{string(v[1]), string(v[2])})
+		}
+		time.Sleep(1 * time.Second)
+	}
+	// 开始下载历史图片
+	for _, v := range historyImage.Image {
+		saveImage(v.Id, imageType, v.Title, path, blacklist)
+	}
 }
 
 func main() {
 	var loli Loli
-	// 设置3个下载线程
-	ch := make(chan int, 3)
+	var historyImage HistoryImage
 	loli.MediaContents = make([]ImageContentInfo, 1)
-	// 获取Bing壁纸json数据
-	resp := getData("https://cn.bing.com/hp/api/model")
-	// 解析json数据
-	json.Unmarshal(*resp, &loli)
+	historyImage.Image = make([]ImageInfo, 1)
+	// 文件命名特殊符号过滤
+	blacklist := []string{"\\u0026ldquo;", "\\u0026rdquo;", "\\", "/", ":", "*", "?", "<", ">", "|"}
+	// 分辨率
+	imageType := []string{"1920x1080", "UHD"}
 	// 路径分隔符
 	pathSeparator := filepath.FromSlash("/")
 	// 获取当前运行目录的Wallpaper文件夹
@@ -74,19 +129,20 @@ func main() {
 	if err != nil {
 		os.Mkdir(path, 0775)
 	}
+	// 根据启动参数长度来决定是否下载历史图片
+	if len(os.Args) == 2 && os.Args[1] == "-loli" {
+		historyImage.HistoryDownload(&imageType, path, &blacklist)
+		return
+	}
+	// 获取Bing壁纸json数据
+	resp := getData("https://cn.bing.com/hp/api/model")
+	// 解析json数据
+	json.Unmarshal(*resp, &loli)
 	re := regexp.MustCompile("id=(.+?)_1920")
 	// 遍历壁纸链接
 	for _, v := range loli.MediaContents {
-		// 下载1920x1080
 		url := "https://cn.bing.com" + v.ImageContent.Image.Url
 		imageId := re.FindStringSubmatch(url)
-		fileName := v.ImageContent.Title
-		go saveImage(url, fileName + "_1920x1080.jpg", path, ch)
-		// 下载4K
-		url = "https://www.bingimg.cn/down/uhd/"+ imageId[1] +"_UHD.jpg"
-		go saveImage(url, fileName + "_UHD.jpg", path, ch)
-	}
-	for i := 0; i < len(loli.MediaContents) * 2; i++ {
-		<-ch
+		saveImage(imageId[1], &imageType, v.ImageContent.Title, path, &blacklist)
 	}
 }
