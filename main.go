@@ -69,7 +69,7 @@ func saveImage(Id string, imageType *[]string, title string, path string, blackl
 			continue
 		}
 		count++
-		fmt.Printf("%d %s ", count, fileName)
+		fmt.Printf("%d %s ", count, fileName + "_" + v + ".jpg")
 		url := "https://cn.bing.com/th?id=" + Id + "_" + v + ".jpg&rf=LaDigue_" + v + ".jpg"
 		resp := getData(url)
 		f, err := os.Create(path + fileName + "_" + v + ".jpg")
