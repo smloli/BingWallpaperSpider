@@ -16,6 +16,7 @@ import (
 type ImageInfo struct {
 	Id string
 	Title string
+	Date string
 }
 
 // 历史图片下载
@@ -34,6 +35,7 @@ type Images struct {
 
 type ImageContentInfo struct {
 	ImageContent Images
+	Ssd string
 }
 
 // 每日图片下载
@@ -64,7 +66,8 @@ func saveImage(Id string, imageType *[]string, title string, path string, blackl
 		}
 	}
 	for _, v := range *imageType {
-		if _, err := os.Stat(path + fileName + "_" + v + ".jpg"); err == nil {
+		filepath := path + fileName + "_" + v + ".jpg"
+		if _, err := os.Stat(filepath); err == nil {
 			fmt.Printf("%s 已下载，正在跳过...\n", fileName)
 			continue
 		}
@@ -72,7 +75,12 @@ func saveImage(Id string, imageType *[]string, title string, path string, blackl
 		fmt.Printf("%d %s ", count, fileName + "_" + v + ".jpg")
 		url := "https://cn.bing.com/th?id=" + Id + "_" + v + ".jpg&rf=LaDigue_" + v + ".jpg"
 		resp := getData(url)
-		f, err := os.Create(path + fileName + "_" + v + ".jpg")
+		// 判断图片大小是否为0
+		if len(*resp) == 0 {
+			fmt.Println("下载失败，图片大小为0，已跳过")
+			continue
+		}
+		f, err := os.Create(filepath)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -85,7 +93,7 @@ func saveImage(Id string, imageType *[]string, title string, path string, blackl
 
 // 历史壁纸下载
 func (historyImage *HistoryImage) HistoryDownload(imageType *[]string, path string, blacklist *[]string) {
-	re := regexp.MustCompile(`alt="(.+?)_1920x1080\.jpg"\r\n\s+title="(.+?)\s\(&copy`)
+	re := regexp.MustCompile(`alt="(.+?)_1920x1080\.jpg"\r\n\s+title="(.+?)\s\(&copy[\s \S]+?class="date">(.+?)</p>`)
 	// 取出最后一页
 	respPageMax := getData("http://bing.richex.cn")
 	rePageMax := regexp.MustCompile(`\.\.\.</span></li><li>.+?>(\d+)</a></li> <li>`)
@@ -100,15 +108,16 @@ func (historyImage *HistoryImage) HistoryDownload(imageType *[]string, path stri
 			if historyImage.Image[0].Id == "" {
 				historyImage.Image[0].Id = string(v[1])
 				historyImage.Image[0].Title = string(v[2])
+				historyImage.Image[0].Date = string(v[3])
 				continue
 			}
-			historyImage.Image = append(historyImage.Image, ImageInfo{string(v[1]), string(v[2])})
+			historyImage.Image = append(historyImage.Image, ImageInfo{string(v[1]), string(v[2]), string(v[3])})
 		}
 		time.Sleep(1 * time.Second)
 	}
 	// 开始下载历史图片
 	for _, v := range historyImage.Image {
-		saveImage(v.Id, imageType, v.Title, path, blacklist)
+		saveImage(v.Id, imageType, v.Title + v.Date, path, blacklist)
 	}
 }
 
@@ -138,11 +147,21 @@ func main() {
 	resp := getData("https://cn.bing.com/hp/api/model")
 	// 解析json数据
 	json.Unmarshal(*resp, &loli)
+	// // 给historyImage添加日期，到时候文件名直接加上Date里的日期
+	// for _, v := range loli.MediaContents {
+	// 	date := fmt.Sprintf("%s-%s-%s", v.Ssd[:4], v.Ssd[4:6], v.Ssd[6:8])
+	// 	if historyImage.Image[0].Date == "" {
+	// 		historyImage.Image[0].Date = date
+	// 		continue
+	// 	}
+	// 	historyImage.Image = append(historyImage.Image, ImageInfo{Date=date})
+	// }
 	re := regexp.MustCompile("id=(.+?)_1920")
 	// 遍历壁纸链接
 	for _, v := range loli.MediaContents {
 		url := "https://cn.bing.com" + v.ImageContent.Image.Url
 		imageId := re.FindStringSubmatch(url)
-		saveImage(imageId[1], &imageType, v.ImageContent.Title, path, &blacklist)
+		date := fmt.Sprintf("%s-%s-%s", v.Ssd[:4], v.Ssd[4:6], v.Ssd[6:8])
+		saveImage(imageId[1], &imageType, v.ImageContent.Title + "_" + date, path, &blacklist)
 	}
 }
