@@ -46,7 +46,8 @@ type Loli struct {
 func getData(url string) *[]byte {
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("无法访问Bing！")
+		fmt.Println("链接请求失败！")
+		return nil
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -76,7 +77,7 @@ func saveImage(Id string, imageType *[]string, title string, path string, blackl
 		url := "https://cn.bing.com/th?id=" + Id + "_" + v + ".jpg&rf=LaDigue_" + v + ".jpg"
 		resp := getData(url)
 		// 判断图片大小是否为0
-		if len(*resp) == 0 {
+		if len(*resp) == 0 || *resp == nil {
 			fmt.Println("下载失败，图片大小为0，已跳过")
 			continue
 		}
@@ -147,15 +148,6 @@ func main() {
 	resp := getData("https://cn.bing.com/hp/api/model")
 	// 解析json数据
 	json.Unmarshal(*resp, &loli)
-	// // 给historyImage添加日期，到时候文件名直接加上Date里的日期
-	// for _, v := range loli.MediaContents {
-	// 	date := fmt.Sprintf("%s-%s-%s", v.Ssd[:4], v.Ssd[4:6], v.Ssd[6:8])
-	// 	if historyImage.Image[0].Date == "" {
-	// 		historyImage.Image[0].Date = date
-	// 		continue
-	// 	}
-	// 	historyImage.Image = append(historyImage.Image, ImageInfo{Date=date})
-	// }
 	re := regexp.MustCompile("id=(.+?)_1920")
 	// 遍历壁纸链接
 	for _, v := range loli.MediaContents {
