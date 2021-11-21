@@ -7,10 +7,8 @@
 >###### 使用教程
 >
 >* 直接打开，下载当日图片（图1）
->* 加参数-loli 下载历史图片（图2）
+>* 加参数-loli 下载历史所有图片（图2）
 
-![](https://dd-static.jd.com/ddimg/jfs/t1/209519/6/9962/71185/6199063eE59daab61/cc27928828810ae8.png)
-
-![](https://dd-static.jd.com/ddimg/jfs/t1/204550/24/13752/22835/6199063eE63ac1409/2c758ff0b68b9cfa.png)
-
-![](https://dd-static.jd.com/ddimg/jfs/t1/144307/2/19728/186112/6199063eE9d0abfa7/3f22cd180945eef5.png)
+![1.png](https://dd-static.jd.com/ddimg/jfs/t1/214727/26/5204/70519/6199c0c3Ef0638e2c/36b2c534057b68a3.png)
+![2.png](https://dd-static.jd.com/ddimg/jfs/t1/199912/29/17817/46512/6199c0c3E40ce51c7/fee3b1a676062d69.png)
+![3.png](https://dd-static.jd.com/ddimg/jfs/t1/138826/7/23886/180436/6199c0c3Eef5f5182/e5c9dbec2cdaa63d.png)
