@@ -100,9 +100,10 @@ func (historyImage *HistoryImage) HistoryDownload(imageType *[]string, path stri
 	rePageMax := regexp.MustCompile(`\.\.\.</span></li><li>.+?>(\d+)</a></li> <li>`)
 	resPageMax := rePageMax.FindSubmatch(*respPageMax)
 	pageMax, _ := strconv.Atoi(string(resPageMax[1]))
+	fmt.Print("正在解析 --> ")
 	// 获取图片Id和标题
 	for i := 1; i <= pageMax; i++ {
-		fmt.Printf("正在爬取第%d页\n", i)
+		fmt.Printf("%5.2f%%", (float32(i) / float32(pageMax)) * 100)
 		resp := getData("http://bing.richex.cn/?page=" + fmt.Sprintf("%d", i))
 		res := re.FindAllSubmatch(*resp, -1)
 		for _, v := range res {
@@ -115,7 +116,9 @@ func (historyImage *HistoryImage) HistoryDownload(imageType *[]string, path stri
 			historyImage.Image = append(historyImage.Image, ImageInfo{string(v[1]), string(v[2]), string(v[3])})
 		}
 		time.Sleep(1 * time.Second)
+		fmt.Print("\b\b\b\b\b\b")
 	}
+	fmt.Println()
 	// 开始下载历史图片
 	for _, v := range historyImage.Image {
 		saveImage(v.Id, imageType, v.Title + v.Date, path, blacklist)
