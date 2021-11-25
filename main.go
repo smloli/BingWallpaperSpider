@@ -77,7 +77,7 @@ func saveImage(Id string, imageType *[]string, title string, path string, blackl
 		url := "https://cn.bing.com/th?id=" + Id + "_" + v + ".jpg&rf=LaDigue_" + v + ".jpg"
 		resp := getData(url)
 		// 判断图片大小是否为0
-		if len(*resp) == 0 || *resp == nil {
+		if *resp == nil {
 			fmt.Println("下载失败，图片大小为0，已跳过")
 			continue
 		}
